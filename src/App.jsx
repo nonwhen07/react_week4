@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Modal } from 'bootstrap';
-import axios from 'axios';
+import { useState, useEffect, useRef } from "react";
+import { Modal } from "bootstrap";
+import axios from "axios";
 
 function App() {
   // 環境變數
@@ -12,7 +12,10 @@ function App() {
   const deleteModalRef = useRef(null);
 
   // 狀態管理 (State)
-  const [account, setAccount] = useState({ username: "example@test.com", password: "example"});
+  const [account, setAccount] = useState({
+    username: "example@test.com",
+    password: "example",
+  });
   const [isAuth, setIsAuth] = useState(false);
   const [products, setProducts] = useState([]);
   //Modal 資料狀態的預設值
@@ -26,125 +29,180 @@ function App() {
     description: "",
     content: "",
     is_enabled: 0,
-    imagesUrl: [""]
+    imagesUrl: [""],
   };
   const [tempProduct, setTempProduct] = useState(defaultModalState);
   const [modalMode, setModalMode] = useState(null);
 
   // API & 認證相關函式
   const handleLogin = (e) => {
-
+    e.preventDefault();
+    axios
+      .post(`${baseURL}/v2/admin/signin`, account)
+      .then((res) => {
+        const { token, expired } = res.data;
+        document.cookie = `hexToken=${token}; expires=${new Date(expired)}`;
+        axios.defaults.headers.common.Authorization = token;
+        getProducts();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("登入失敗");
+      });
   };
-
-
   // 表單變更事件
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setAccount((prev) => ({ ...prev, [name]: value }));
   };
+  // 取得產品列表
+  const getProducts = () => {
+    axios
+      .get(`${baseURL}/v2/api/${apiPath}/admin/products`)
+      .then((res) => {
+        setProducts(res.data.products);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("取得產品列表失敗");
+      });
+  };
+  //確認登入狀態
+  const checkLogin = () => {
+    axios
+      .post(`${baseURL}/v2/api/user/check`)
+      .then(() => {
+        setIsAuth(true);
+        getProducts();
+      })
+      .catch((error) => {
+        console.error(error);
+        setIsAuth(false);
+      });
+  };
   // 新增、編輯、刪除產品
   // Modal 控制
 
   // useEffect
-
-
-
-
+  useEffect(() => {
+    const token = document.cookie.replace(
+      /(?:(?:^|.*;\s*)hexToken\s*=\s*([^;]*).*$)|^.*$/,
+      "$1"
+    );
+    axios.defaults.headers.common["Authorization"] = token;
+    checkLogin();
+  }, []);
 
   return (
     <>
       {isAuth ? (
         <div className="container py-5">
-          <div className="row">
-            <div className="col-6">
-              <h2>產品列表</h2>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th scope="col">產品名稱</th>
-                    <th scope="col">原價</th>
-                    <th scope="col">售價</th>
-                    <th scope="col">是否啟用</th>
-                    <th scope="col">查看細節</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id}>
-                      <th scope="row">{product.title}</th>
-                      <td>{product.origin_price}</td>
-                      <td>{product.price}</td>
-                      <td>{product.is_enabled}</td>
-                      <td>
-                        <button
-                          onClick={() => setTempProduct(product)}
-                          className="btn btn-primary"
-                          type="button"
-                        >
-                          查看細節
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="col-6">
-              <h2>單一產品細節</h2>
-              {tempProduct.title ? (
-                <div className="card">
-                  <img
-                    src={tempProduct.imageUrl}
-                    className="card-img-top img-fluid"
-                    alt={tempProduct.title}
-                  />
-                  <div className="card-body">
-                    <h5 className="card-title">
-                      {tempProduct.title}
-                      <span className="badge text-bg-primary">
-                        {tempProduct.category}
-                      </span>
-                    </h5>
-                    <p className="card-text">商品描述：{tempProduct.description}</p>
-                    <p className="card-text">商品內容：{tempProduct.content}</p>
-                    <p className="card-text">
-                      <del>{tempProduct.origin_price} 元</del> / {tempProduct.price}{" "}
-                      元
-                    </p>
-                    <h5 className="card-title">更多圖片：</h5>
-                    {tempProduct.imagesUrl?.map((image) => (image && (<img key={image} src={image} className="img-fluid" />)))}
-                  </div>
-                </div>
-              ) : (
-                <p>請選擇一個商品查看</p>
-              )}
-            </div>
+          <div className="d-flex justify-content-between">
+            <h2>產品列表</h2>
+            <button
+              type="button"
+              onClick={() => {
+                handleOpenProductModal("create");
+              }}
+              className="btn btn-primary"
+            >
+              新增產品
+            </button>
           </div>
+
+          <table className="table mt-4">
+            <thead>
+              <tr>
+                <th scope="col-3">產品名稱</th>
+                <th scope="col-2">原價</th>
+                <th scope="col-2">售價</th>
+                <th scope="col-2">是否啟用</th>
+                <th scope="col-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id}>
+                  <th scope="row">{product.title}</th>
+                  <td>{product.origin_price}</td>
+                  <td>{product.price}</td>
+                  <td>
+                    {product.is_enabled ? (
+                      <span className="text-success"></span>
+                    ) : (
+                      <span>未啟用</span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleOpenProductModal("edit", product)}
+                      className="btn btn-sm btn-outline-primary"
+                      type="button"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      onClick={() => handleOpenDeleteModal(product)}
+                      className="btn btn-sm btn-outline-danger"
+                      type="button"
+                    >
+                      刪除
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        ) : (
+      ) : (
         <div className="d-flex flex-column justify-content-center align-items-center vh-100">
           <h1 className="mb-5">請先登入</h1>
           <form onSubmit={handleLogin} className="d-flex flex-column gap-3">
             <div className="form-floating mb-3">
-              <input type="email" value={account.username || ""} onChange={handleInputChange} className="form-control" id="username" placeholder="name@example.com" />
+              <input
+                type="email"
+                value={account.username || ""}
+                onChange={handleInputChange}
+                className="form-control"
+                id="username"
+                placeholder="name@example.com"
+              />
               <label htmlFor="username">Email address</label>
             </div>
             <div className="form-floating">
-              <input type="password" value={account.password || ""} onChange={handleInputChange} className="form-control" id="password" placeholder="Password" />
+              <input
+                type="password"
+                value={account.password || ""}
+                onChange={handleInputChange}
+                className="form-control"
+                id="password"
+                placeholder="Password"
+              />
               <label htmlFor="password">Password</label>
             </div>
-            <button type='submit' className="btn btn-primary">登入</button>
+            <button type="submit" className="btn btn-primary">
+              登入
+            </button>
           </form>
           <p className="mt-5 mb-3 text-muted">&copy; 2024~∞ - 六角學院</p>
         </div>
-        )}
-      
-      <div id="productModal" className="modal" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+      )}
+
+      <div
+        id="productModal"
+        ref={productModalRef}
+        className="modal"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      >
         <div className="modal-dialog modal-dialog-centered modal-xl">
           <div className="modal-content border-0 shadow">
             <div className="modal-header border-bottom">
               <h5 className="modal-title fs-4">新增產品</h5>
-              <button type="button" className="btn-close" aria-label="Close"></button>
+              <button
+                type="button"
+                className="btn-close"
+                aria-label="Close"
+              ></button>
             </div>
 
             <div className="modal-body p-4">
@@ -163,11 +221,7 @@ function App() {
                         placeholder="請輸入圖片連結"
                       />
                     </div>
-                    <img
-                      src=""
-                      alt=""
-                      className="img-fluid"
-                    />
+                    <img src="" alt="" className="img-fluid" />
                   </div>
 
                   {/* 副圖 */}
@@ -195,7 +249,6 @@ function App() {
                         )}
                       </div>
                     ))}
-
                   </div>
                 </div>
 
@@ -319,7 +372,13 @@ function App() {
         </div>
       </div>
 
-      <div id="delProductModal" className="modal fade" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+      <div
+        id="delProductModal"
+        ref={deleteModalRef}
+        className="modal fade"
+        tabIndex="-1"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      >
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header">
@@ -332,14 +391,11 @@ function App() {
               ></button>
             </div>
             <div className="modal-body">
-              你是否要刪除 
+              你是否要刪除
               <span className="text-danger fw-bold">{tempProduct.title}</span>
             </div>
             <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-              >
+              <button type="button" className="btn btn-secondary">
                 取消
               </button>
               <button type="button" className="btn btn-danger">
@@ -349,9 +405,8 @@ function App() {
           </div>
         </div>
       </div>
-
     </>
-  )
+  );
 }
 
-export default App
+export default App;
