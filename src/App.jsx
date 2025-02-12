@@ -42,10 +42,12 @@ function App() {
       .then((res) => {
         const { token, expired } = res.data;
         document.cookie = `hexToken=${token}; expires=${new Date(expired)}`;
-        axios.defaults.headers.common.Authorization = token;
+        axios.defaults.headers.common["Authorization"] = token;
         getProducts();
+        setIsAuth(true); // 設定登入狀態
       })
       .catch((err) => {
+        setIsAuth(false);
         console.error(err);
         alert("登入失敗");
       });
@@ -80,7 +82,103 @@ function App() {
         setIsAuth(false);
       });
   };
-  // 新增、編輯、刪除產品
+
+  // Modal表單-變更事件
+  const handleModalInputChange = (e) => {
+    // Modal 表單變更事件
+    const { name, value, checked, type } = e.target;
+    setTempProduct((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value, //透過type判斷是否為checkbox，綁定 checkbox 的勾選狀態時，應透過 checked 屬性，而非 value
+    }));
+  };
+  const handleImageChange = (e, index) => {
+    // 副圖表單變更事件
+    const { value } = e.target;
+    const newImageUrl = [...tempProduct.imagesUrl]; // 複製一份原本的副圖陣列
+    newImageUrl[index] = value; // 找出要修改的陣列index，進行修改
+    setTempProduct((prev) => ({
+      ...prev,
+      imagesUrl: newImageUrl,
+    }));
+  };
+  // Modal表單 - 新增、刪除副圖
+  const handleAddImage = () => {
+    const newImagesUrl = [...tempProduct.imagesUrl, ""]; // 複製一份原本的副圖陣列
+    setTempProduct((prev) => ({
+      ...prev,
+      imagesUrl: newImagesUrl,
+    }));
+  };
+  const handleDeleteImage = () => {
+    const newImagesUrl = [...tempProduct.imagesUrl]; // 複製一份原本的副圖陣列
+    newImagesUrl.pop(); // 移除最後一筆
+    setTempProduct((prev) => ({
+      ...prev,
+      imagesUrl: newImagesUrl,
+    }));
+  };
+
+  // 新增、編輯、刪除產品動點
+  const handleUpdateProduct = async () => {
+    try {
+      await (modalMode === "create" ? createProduct() : updateProduct());
+      getProducts();
+      handleCloseProductModal();
+    } catch (err) {
+      console.error(err);
+      alert("更新失敗");
+    }
+  };
+  // 新增
+  const createProduct = async () => {
+    try {
+      await axios.post(
+        `${baseURL}/v2/api/${apiPath}/admin/product`,
+        tempProduct
+      );
+    } catch (error) {
+      console.error(error);
+      alert("新增商品失敗");
+    }
+  };
+  // 編輯
+  const updateProduct = async () => {
+    try {
+      await axios.post(`${baseURL}/v2/api/${apiPath}/admin/product`, {
+        ...tempProduct,
+        origin_price: Number(tempProduct.origin_price),
+        price: Number(tempProduct.price),
+        is_enabled: tempProduct.is_enabled ? 1 : 0,
+      });
+    } catch (error) {
+      console.error(error);
+      alert("編輯商品失敗");
+    }
+  };
+  // 刪除產品動點
+  const handleDeleteProduct = async () => {
+    try {
+      await deleteProduct();
+      getProducts();
+      handleCloseDeleteModal();
+    } catch (error) {
+      console.error(error);
+      alert("刪除商品失敗");
+    }
+  };
+  // 刪除
+  const deleteProduct = async () => {
+    try {
+      await axios.delete(
+        `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`
+      );
+    } catch (error) {
+      console.error(error);
+      alert("刪除商品失敗");
+    }
+  };
+
   // Modal 控制
   // ProductModal
   const handleOpenProductModal = (mode, product = defaultModalState) => {
@@ -171,7 +269,7 @@ function App() {
                   <td>{product.price}</td>
                   <td>
                     {product.is_enabled ? (
-                      <span className="text-success"></span>
+                      <span className="text-success">啟用</span>
                     ) : (
                       <span>未啟用</span>
                     )}
@@ -203,23 +301,25 @@ function App() {
           <form onSubmit={handleLogin} className="d-flex flex-column gap-3">
             <div className="form-floating mb-3">
               <input
+                id="username"
+                name="username"
                 type="email"
                 value={account.username || ""}
                 onChange={handleInputChange}
                 className="form-control"
-                id="username"
-                placeholder="name@example.com"
+                placeholder="example@test.com"
               />
               <label htmlFor="username">Email address</label>
             </div>
             <div className="form-floating">
               <input
+                id="password"
+                name="password"
                 type="password"
                 value={account.password || ""}
                 onChange={handleInputChange}
                 className="form-control"
-                id="password"
-                placeholder="Password"
+                placeholder="example"
               />
               <label htmlFor="password">Password</label>
             </div>
@@ -240,9 +340,14 @@ function App() {
         <div className="modal-dialog modal-dialog-centered modal-xl">
           <div className="modal-content border-0 shadow">
             <div className="modal-header border-bottom">
-              <h5 className="modal-title fs-4">新增產品</h5>
+              <h5 className="modal-title fs-4">
+                {modalMode === "create"
+                  ? "新增產品"
+                  : "編輯 - " + tempProduct.title}
+              </h5>
               <button
                 type="button"
+                onClick={handleCloseProductModal}
                 className="btn-close"
                 aria-label="Close"
               ></button>
@@ -279,6 +384,10 @@ function App() {
                         </label>
                         <input
                           id={`imagesUrl-${index + 1}`}
+                          value={image}
+                          onChange={(e) => {
+                            handleImageChange(e, index);
+                          }}
                           type="text"
                           placeholder={`圖片網址 ${index + 1}`}
                           className="form-control mb-2"
@@ -293,6 +402,27 @@ function App() {
                       </div>
                     ))}
                   </div>
+                  <div className="btn-group w-100">
+                    {tempProduct.imagesUrl.length < 5 &&
+                      tempProduct.imagesUrl[
+                        tempProduct.imagesUrl.length - 1
+                      ] !== "" && (
+                        <button
+                          onClick={handleAddImage}
+                          className="btn btn-outline-primary btn-sm w-100"
+                        >
+                          新增圖片
+                        </button>
+                      )}
+                    {tempProduct.imagesUrl.length > 1 && (
+                      <button
+                        onClick={handleDeleteImage}
+                        className="btn btn-outline-danger btn-sm w-100"
+                      >
+                        刪除圖片
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="col-md-8">
@@ -301,6 +431,8 @@ function App() {
                       標題
                     </label>
                     <input
+                      value={tempProduct.title}
+                      onChange={handleModalInputChange}
                       name="title"
                       id="title"
                       type="text"
@@ -314,6 +446,8 @@ function App() {
                       分類
                     </label>
                     <input
+                      value={tempProduct.category}
+                      onChange={handleModalInputChange}
                       name="category"
                       id="category"
                       type="text"
@@ -327,6 +461,8 @@ function App() {
                       單位
                     </label>
                     <input
+                      value={tempProduct.unit}
+                      onChange={handleModalInputChange}
                       name="unit"
                       id="unit"
                       type="text"
@@ -341,6 +477,8 @@ function App() {
                         原價
                       </label>
                       <input
+                        value={tempProduct.origin_price}
+                        onChange={handleModalInputChange}
                         name="origin_price"
                         id="origin_price"
                         type="number"
@@ -353,6 +491,8 @@ function App() {
                         售價
                       </label>
                       <input
+                        value={tempProduct.price}
+                        onChange={handleModalInputChange}
                         name="price"
                         id="price"
                         type="number"
@@ -367,6 +507,8 @@ function App() {
                       產品描述
                     </label>
                     <textarea
+                      value={tempProduct.description}
+                      onChange={handleModalInputChange}
                       name="description"
                       id="description"
                       className="form-control"
@@ -380,6 +522,8 @@ function App() {
                       說明內容
                     </label>
                     <textarea
+                      value={tempProduct.content}
+                      onChange={handleModalInputChange}
                       name="content"
                       id="content"
                       className="form-control"
@@ -390,6 +534,8 @@ function App() {
 
                   <div className="form-check">
                     <input
+                      checked={Boolean(tempProduct.is_enabled)}
+                      onChange={handleModalInputChange}
                       name="is_enabled"
                       type="checkbox"
                       className="form-check-input"
