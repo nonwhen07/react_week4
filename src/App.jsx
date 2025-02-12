@@ -82,6 +82,41 @@ function App() {
   };
   // 新增、編輯、刪除產品
   // Modal 控制
+  // ProductModal
+  const handleOpenProductModal = (mode, product = defaultModalState) => {
+    // switch (mode) {
+    //   case 'create':
+    //     setTempProduct(defaultModalState);
+    //     break;
+    //   case 'edit':
+    //     setTempProduct(product || defaultModalState);
+    //     break;
+    //   default:
+    //     break;
+    // }
+    // setTempProduct(product || defaultModalState); // 簡化switch，新增就使用預設值defaultModalState處理
+    setModalMode(mode);
+    setTempProduct(
+      Object.keys(product).length > 0 ? product : defaultModalState // 避免 api 回傳 product 為空物件時，無法正確設定tempProduct更保險
+    );
+    Modal.getInstance(productModalRef.current).show(); // Modal.getInstance 取得 Modal 實例，再使用 show() 顯示 Modal
+  };
+  const handleCloseProductModal = () => {
+    // const modalInstance = Modal.getInstance(productModalRef.current); // productModalRef.current 取得 useRef 的 DOM
+    // modalInstance.hide();
+    Modal.getInstance(productModalRef.current).hide();
+  };
+  // DeleteModal
+  const handleOpenDeleteModal = (product = defaultModalState) => {
+    setTempProduct(
+      // 避免 api 回傳 product 為空物件時，無法正確設定tempProduct更保險
+      product && Object.keys(product).length > 0 ? product : defaultModalState
+    );
+    Modal.getInstance(deleteModalRef.current).show();
+  };
+  const handleCloseDeleteModal = () => {
+    Modal.getInstance(deleteModalRef.current).hide();
+  };
 
   // useEffect
   useEffect(() => {
@@ -92,6 +127,15 @@ function App() {
     axios.defaults.headers.common["Authorization"] = token;
     checkLogin();
   }, []);
+  //初始化 Modal
+  useEffect(() => {
+    if (productModalRef.current) {
+      new Modal(productModalRef.current, { backdrop: false });
+    }
+    if (deleteModalRef.current) {
+      new Modal(deleteModalRef.current, { backdrop: false });
+    }
+  }, [productModalRef, deleteModalRef]);
 
   return (
     <>
@@ -109,7 +153,6 @@ function App() {
               新增產品
             </button>
           </div>
-
           <table className="table mt-4">
             <thead>
               <tr>
@@ -361,10 +404,18 @@ function App() {
             </div>
 
             <div className="modal-footer border-top bg-light">
-              <button type="button" className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={handleCloseProductModal}
+                className="btn btn-secondary"
+              >
                 取消
               </button>
-              <button type="button" className="btn btn-primary">
+              <button
+                type="button"
+                onClick={handleUpdateProduct}
+                className="btn btn-primary"
+              >
                 確認
               </button>
             </div>
@@ -395,10 +446,18 @@ function App() {
               <span className="text-danger fw-bold">{tempProduct.title}</span>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary">
+              <button
+                type="button"
+                onClick={handleCloseDeleteModal}
+                className="btn btn-secondary"
+              >
                 取消
               </button>
-              <button type="button" className="btn btn-danger">
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                className="btn btn-danger"
+              >
                 刪除
               </button>
             </div>
