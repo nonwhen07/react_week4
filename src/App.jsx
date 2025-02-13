@@ -47,9 +47,9 @@ function App() {
         getProducts();
         setIsAuth(true); // 設定登入狀態
       })
-      .catch((err) => {
+      .catch((error) => {
         setIsAuth(false);
-        console.error(err);
+        console.error(error);
         alert("登入失敗");
       });
   };
@@ -59,17 +59,29 @@ function App() {
     setAccount((prev) => ({ ...prev, [name]: value }));
   };
   // 取得產品列表
-  const getProducts = (page = 1) => {
-    axios
-      .get(`${baseURL}/v2/api/${apiPath}/admin/products?page=${page}`)
-      .then((res) => {
-        setProducts(res.data.products);
-        setPageInfo(res.data.pagination);
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("取得產品列表失敗");
-      });
+  // const getProducts = (page = 1) => {
+  //   axios
+  //     .get(`${baseURL}/v2/api/${apiPath}/admin/products?page=${page}`)
+  //     .then((res) => {
+  //       setProducts(res.data.products);
+  //       setPageInfo(res.data.pagination);
+  //     })
+  //     .catch((error) => {
+  //       console.error(error);
+  //       alert("取得產品列表失敗");
+  //     });
+  // };
+  const getProducts = async (page) => {
+    try {
+      const res = await axios.get(
+        `${baseURL}/v2/api/${apiPath}/admin/products?page=${page}`
+      );
+      setProducts(res.data.products);
+      setPageInfo(res.data.pagination);
+    } catch (error) {
+      console.error(error);
+      alert("取得產品列表失敗");
+    }
   };
 
   // 產品列表分頁
@@ -125,42 +137,104 @@ function App() {
       imagesUrl: newImagesUrl,
     }));
   };
+  // Modal表單 - 主圖上傳
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    const formData = new FormData(); // 先確認後端api接收檔案時，所使用 FormData 格式。 enctype="multipart/form-data"
+    formData.append("file-to-upload", file); // file-to-upload 也是先確認後端api接收檔案的 key
+    try {
+      const res = await axios.post(
+        `${baseURL}/v2/api/${apiPath}/admin/upload`,
+        formData
+      );
+      const imgUploadUrl = res.data.imageUrl;
+      console.log(imgUploadUrl);
+      setTempProduct((prev) => ({
+        ...prev,
+        imageUrl: imgUploadUrl,
+      }));
+    } catch (error) {
+      console.error(error);
+      alert(error);
+    }
+  };
 
   // 新增、編輯、刪除產品動點
   const handleUpdateProduct = async () => {
+    // try {
+    //   await (modalMode === "create" ? createProduct() : updateProduct());
+    //   getProducts();
+    //   handleCloseProductModal();
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    const apiCall = modalMode === "create" ? createProduct : updateProduct;
     try {
-      await (modalMode === "create" ? createProduct() : updateProduct());
+      await apiCall();
       getProducts();
       handleCloseProductModal();
-    } catch (err) {
-      console.error(err);
-      alert("更新失敗");
+    } catch (error) {
+      console.error(error);
+      alert("更新產品失敗");
     }
   };
   // 新增
   const createProduct = async () => {
-    try {
-      await axios.post(
-        `${baseURL}/v2/api/${apiPath}/admin/product`,
-        tempProduct
-      );
-    } catch (error) {
-      console.error(error);
-      alert("新增商品失敗");
-    }
-  };
-  // 編輯
-  const updateProduct = async () => {
+    // try {
+    //   await axios.post(
+    //     `${baseURL}/v2/api/${apiPath}/admin/product`,
+    //     tempProduct
+    //   );
+    // } catch (error) {
+    //   console.error(error);
+    //   alert("新增商品失敗");
+    // }
     try {
       await axios.post(`${baseURL}/v2/api/${apiPath}/admin/product`, {
-        ...tempProduct,
-        origin_price: Number(tempProduct.origin_price),
-        price: Number(tempProduct.price),
-        is_enabled: tempProduct.is_enabled ? 1 : 0,
+        data: {
+          ...tempProduct,
+          origin_price: Number(tempProduct.origin_price),
+          price: Number(tempProduct.price),
+          is_enabled: tempProduct.is_enabled ? 1 : 0,
+        },
       });
     } catch (error) {
       console.error(error);
-      alert("編輯商品失敗");
+      alert("新增產品失敗");
+    }
+  };
+  // 編輯-OIM6bZOswki2sQ19aKz
+  const updateProduct = async () => {
+    // try {
+    //   await axios.put(
+    //     `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`,
+    //     {
+    //       ...tempProduct,
+    //       origin_price: Number(tempProduct.origin_price),
+    //       price: Number(tempProduct.price),
+    //       is_enabled: tempProduct.is_enabled ? 1 : 0,
+    //     }
+    //   );
+    // } catch (error) {
+    //   console.error(error);
+    //   alert("編輯商品失敗");
+    // }
+
+    try {
+      await axios.put(
+        `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`,
+        {
+          data: {
+            ...tempProduct,
+            origin_price: Number(tempProduct.origin_price),
+            price: Number(tempProduct.price),
+            is_enabled: tempProduct.is_enabled ? 1 : 0,
+          },
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      alert("編輯產品失敗");
     }
   };
   // 刪除產品動點
@@ -405,12 +479,28 @@ function App() {
             <div className="modal-body p-4">
               <div className="row g-4">
                 <div className="col-md-4">
+                  <div className="mb-5">
+                    <label htmlFor="fileInput" className="form-label">
+                      {" "}
+                      圖片上傳 僅限使用 jpg、jpeg 與 png 格式，檔案大小限制為
+                      3MB 以下。
+                    </label>
+                    <input
+                      onChange={handleFileChange}
+                      type="file"
+                      accept=".jpg,.jpeg,.png"
+                      className="form-control"
+                      id="fileInput"
+                    />
+                  </div>
                   <div className="mb-4">
                     <label htmlFor="primary-image" className="form-label">
                       主圖
                     </label>
                     <div className="input-group">
                       <input
+                        value={tempProduct.imageUrl}
+                        onChange={handleModalInputChange}
                         name="imageUrl"
                         type="text"
                         id="primary-image"
@@ -418,7 +508,11 @@ function App() {
                         placeholder="請輸入圖片連結"
                       />
                     </div>
-                    <img src="" alt="" className="img-fluid" />
+                    <img
+                      src={tempProduct.imageUrl}
+                      alt=""
+                      className="img-fluid"
+                    />
                   </div>
 
                   {/* 副圖 */}
