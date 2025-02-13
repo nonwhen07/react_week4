@@ -18,6 +18,7 @@ function App() {
   });
   const [isAuth, setIsAuth] = useState(false);
   const [products, setProducts] = useState([]);
+  const [pageInfo, setPageInfo] = useState({});
   //Modal 資料狀態的預設值
   const defaultModalState = {
     imageUrl: "",
@@ -58,16 +59,22 @@ function App() {
     setAccount((prev) => ({ ...prev, [name]: value }));
   };
   // 取得產品列表
-  const getProducts = () => {
+  const getProducts = (page = 1) => {
     axios
-      .get(`${baseURL}/v2/api/${apiPath}/admin/products`)
+      .get(`${baseURL}/v2/api/${apiPath}/admin/products?page=${page}`)
       .then((res) => {
         setProducts(res.data.products);
+        setPageInfo(res.data.pagination);
       })
       .catch((err) => {
         console.error(err);
         alert("取得產品列表失敗");
       });
+  };
+
+  // 產品列表分頁
+  const handlePageChange = (page = 1) => {
+    getProducts(page);
   };
   //確認登入狀態
   const checkLogin = () => {
@@ -294,6 +301,48 @@ function App() {
               ))}
             </tbody>
           </table>
+          <div className="d-flex justify-content-center">
+            <nav className={`${pageInfo.total_pages === 1 ? "d-none" : ""}`}>
+              <ul className="pagination">
+                <li className={`page-item ${!pageInfo.has_pre && "disabled"}`}>
+                  <a
+                    onClick={() => handlePageChange(pageInfo.current_page - 1)}
+                    className="page-link"
+                    href="#"
+                  >
+                    上一頁
+                  </a>
+                </li>
+                {Array.from({ length: pageInfo.total_pages }).map(
+                  (_, index) => (
+                    <li
+                      key={index}
+                      className={`pageitem ${
+                        pageInfo.current_page === index + 1 && "active"
+                      }`}
+                    >
+                      <a
+                        onClick={() => handlePageChange(index + 1)}
+                        className="page-link"
+                        href="#"
+                      >
+                        {index + 1}
+                      </a>
+                    </li>
+                  )
+                )}
+                <li className={`page-item ${!pageInfo.has_next && "disabled"}`}>
+                  <a
+                    onClick={() => handlePageChange(pageInfo.current_page + 1)}
+                    className="page-link"
+                    href="#"
+                  >
+                    下一頁
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       ) : (
         <div className="d-flex flex-column justify-content-center align-items-center vh-100">
