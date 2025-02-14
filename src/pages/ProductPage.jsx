@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Modal } from "bootstrap";
 import axios from "axios";
 // import PropTypes from 'prop-types';
+import Pagination from '../components/Pagination';
 
 function ProductPage() {
   // 環境變數
@@ -50,21 +51,11 @@ function ProductPage() {
   const handlePageChange = (page = 1) => {
     getProducts(page);
   };
+  
 
   // Modal 控制
   // ProductModal
   const handleOpenProductModal = (mode, product = defaultModalState) => {
-    // switch (mode) {
-    //   case 'create':
-    //     setTempProduct(defaultModalState);
-    //     break;
-    //   case 'edit':
-    //     setTempProduct(product || defaultModalState);
-    //     break;
-    //   default:
-    //     break;
-    // }
-    // setTempProduct(product || defaultModalState); // 簡化switch，新增就使用預設值defaultModalState處理
     setModalMode(mode);
     setTempProduct(
       Object.keys(product).length > 0 ? product : defaultModalState // 避免 api 回傳 product 為空物件時，無法正確設定tempProduct更保險
@@ -288,48 +279,7 @@ function ProductPage() {
             ))}
           </tbody>
         </table>
-        <div className="d-flex justify-content-center">
-          <nav className={`${pageInfo.total_pages === 1 ? "d-none" : ""}`}>
-            <ul className="pagination">
-              <li className={`page-item ${!pageInfo.has_pre && "disabled"}`}>
-                <a
-                  onClick={() => handlePageChange(pageInfo.current_page - 1)}
-                  className="page-link"
-                  href="#"
-                >
-                  上一頁
-                </a>
-              </li>
-              {Array.from({ length: pageInfo.total_pages }).map(
-                (_, index) => (
-                  <li
-                    key={index}
-                    className={`pageitem ${
-                      pageInfo.current_page === index + 1 && "active"
-                    }`}
-                  >
-                    <a
-                      onClick={() => handlePageChange(index + 1)}
-                      className="page-link"
-                      href="#"
-                    >
-                      {index + 1}
-                    </a>
-                  </li>
-                )
-              )}
-              <li className={`page-item ${!pageInfo.has_next && "disabled"}`}>
-                <a
-                  onClick={() => handlePageChange(pageInfo.current_page + 1)}
-                  className="page-link"
-                  href="#"
-                >
-                  下一頁
-                </a>
-              </li>
-            </ul>
-          </nav>
-        </div>
+        <Pagination pageInfo={pageInfo} handlePageChange={handlePageChange} />
       </div>
 
       <div
