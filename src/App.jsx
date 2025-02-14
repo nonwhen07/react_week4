@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "bootstrap";
 import axios from "axios";
+import LoginPage from "./pages/LoginPage";
 
 function App() {
   // 環境變數
@@ -12,10 +13,6 @@ function App() {
   const deleteModalRef = useRef(null);
 
   // 狀態管理 (State)
-  const [account, setAccount] = useState({
-    username: "example@test.com",
-    password: "example",
-  });
   const [isAuth, setIsAuth] = useState(false);
   const [products, setProducts] = useState([]);
   const [pageInfo, setPageInfo] = useState({});
@@ -35,29 +32,6 @@ function App() {
   const [tempProduct, setTempProduct] = useState(defaultModalState);
   const [modalMode, setModalMode] = useState(null);
 
-  // API & 認證相關函式
-  const handleLogin = (e) => {
-    e.preventDefault();
-    axios
-      .post(`${baseURL}/v2/admin/signin`, account)
-      .then((res) => {
-        const { token, expired } = res.data;
-        document.cookie = `hexToken=${token}; expires=${new Date(expired)}`;
-        axios.defaults.headers.common["Authorization"] = token;
-        getProducts();
-        setIsAuth(true); // 設定登入狀態
-      })
-      .catch((error) => {
-        setIsAuth(false);
-        console.error(error);
-        alert("登入失敗");
-      });
-  };
-  // 表單變更事件
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setAccount((prev) => ({ ...prev, [name]: value }));
-  };
   // 取得產品列表
   // const getProducts = (page = 1) => {
   //   axios
@@ -180,15 +154,6 @@ function App() {
   };
   // 新增
   const createProduct = async () => {
-    // try {
-    //   await axios.post(
-    //     `${baseURL}/v2/api/${apiPath}/admin/product`,
-    //     tempProduct
-    //   );
-    // } catch (error) {
-    //   console.error(error);
-    //   alert("新增商品失敗");
-    // }
     try {
       await axios.post(`${baseURL}/v2/api/${apiPath}/admin/product`, {
         data: {
@@ -203,23 +168,8 @@ function App() {
       alert("新增產品失敗");
     }
   };
-  // 編輯-OIM6bZOswki2sQ19aKz
+  // 編輯
   const updateProduct = async () => {
-    // try {
-    //   await axios.put(
-    //     `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`,
-    //     {
-    //       ...tempProduct,
-    //       origin_price: Number(tempProduct.origin_price),
-    //       price: Number(tempProduct.price),
-    //       is_enabled: tempProduct.is_enabled ? 1 : 0,
-    //     }
-    //   );
-    // } catch (error) {
-    //   console.error(error);
-    //   alert("編輯商品失敗");
-    // }
-
     try {
       await axios.put(
         `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`,
@@ -300,7 +250,7 @@ function App() {
   // useEffect
   useEffect(() => {
     const token = document.cookie.replace(
-      /(?:(?:^|.*;\s*)hexToken\s*=\s*([^;]*).*$)|^.*$/,
+      /(?:(?:^|.*;\s*)hexToken4\s*=\s*([^;]*).*$)|^.*$/,
       "$1"
     );
     axios.defaults.headers.common["Authorization"] = token;
@@ -419,39 +369,7 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="d-flex flex-column justify-content-center align-items-center vh-100">
-          <h1 className="mb-5">請先登入</h1>
-          <form onSubmit={handleLogin} className="d-flex flex-column gap-3">
-            <div className="form-floating mb-3">
-              <input
-                id="username"
-                name="username"
-                type="email"
-                value={account.username || ""}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="example@test.com"
-              />
-              <label htmlFor="username">Email address</label>
-            </div>
-            <div className="form-floating">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={account.password || ""}
-                onChange={handleInputChange}
-                className="form-control"
-                placeholder="example"
-              />
-              <label htmlFor="password">Password</label>
-            </div>
-            <button type="submit" className="btn btn-primary">
-              登入
-            </button>
-          </form>
-          <p className="mt-5 mb-3 text-muted">&copy; 2024~∞ - 六角學院</p>
-        </div>
+        <LoginPage getProducts={getProducts} setIsAuth={setIsAuth} />
       )}
 
       <div
