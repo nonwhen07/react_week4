@@ -175,6 +175,7 @@ function ProductModal ({modalMode, tempProduct, getProducts, isOpen, setIsOpen }
       ref={productModalRef}
       className="modal"
       style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      inert={!isOpen}
     >
       <div className="modal-dialog modal-dialog-centered modal-xl">
         <div className="modal-content border-0 shadow">
@@ -411,17 +412,17 @@ function ProductModal ({modalMode, tempProduct, getProducts, isOpen, setIsOpen }
           <div className="modal-footer border-top bg-light">
             <button
               type="button"
-              onClick={handleCloseProductModal}
-              className="btn btn-secondary"
-            >
-              取消
-            </button>
-            <button
-              type="button"
               onClick={handleUpdateProduct}
               className="btn btn-primary"
             >
               確認
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseProductModal}
+              className="btn btn-secondary"
+            >
+              取消
             </button>
           </div>
         </div>

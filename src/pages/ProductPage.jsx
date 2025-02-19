@@ -4,6 +4,7 @@ import axios from "axios";
 // import PropTypes from 'prop-types';
 import Pagination from '../components/Pagination';
 import ProductModal from '../components/ProductModal';
+import DeleteModal from '../components/DeleteModal';
 
 function ProductPage() {
   // 環境變數
@@ -16,6 +17,8 @@ function ProductPage() {
   const [pageInfo, setPageInfo] = useState({});
   // 管理Modal元件開關
   const [ isProductModalOpen, setIsProductModalOpen ] = useState(false);
+  const [ isDeleteModalOpen, setIsDeleteModalOpen ] = useState(false);
+
   //Modal 資料狀態的預設值
   const defaultModalState = {
     imageUrl: "",
@@ -67,46 +70,22 @@ function ProductPage() {
       // 避免 api 回傳 product 為空物件時，無法正確設定tempProduct更保險
       product && Object.keys(product).length > 0 ? product : defaultModalState
     );
-    Modal.getInstance(deleteModalRef.current).show();
+    // Modal.getInstance(deleteModalRef.current).show();
+    setIsDeleteModalOpen(true)
   };
-  const handleCloseDeleteModal = () => {
-    Modal.getInstance(deleteModalRef.current).hide();
-  };
+  
+  
 
-  // 刪除產品動點
-  const handleDeleteProduct = async () => {
-    try {
-      await deleteProduct();
-      getProducts();
-      handleCloseDeleteModal();
-    } catch (error) {
-      console.error(error);
-      alert("刪除商品失敗");
-    }
-  };
-  // 刪除
-  const deleteProduct = async () => {
-    try {
-      await axios.delete(
-        `${baseURL}/v2/api/${apiPath}/admin/product/${tempProduct.id}`
-      );
-    } catch (error) {
-      console.error(error);
-      alert("刪除商品失敗");
-    }
-  };
+  
+  
 
   //ProductPage 初始化呼叫 getProducts
   useEffect(() =>{
     getProducts()
   }, [])
 
-  //初始化 Modal
-  useEffect(() => {
-    if (deleteModalRef.current) {
-      new Modal(deleteModalRef.current, { backdrop: false });
-    }
-  }, [deleteModalRef]);
+  
+  
 
   return (
     <>
@@ -177,49 +156,15 @@ function ProductPage() {
         setIsOpen={setIsProductModalOpen} 
       />
       
-      {/* <DeleteModal modalMode={modalMode} tempProduct={tempProduct} isOpen={isdeleteModalOpen} setIsOpen={setIsDeleteModalOpen}   /> */}
+      <DeleteModal 
+        tempProduct={tempProduct} 
+        getProducts={getProducts}
+        isOpen={isDeleteModalOpen} 
+        setIsOpen={setIsDeleteModalOpen}   
+        />
 
-      <div
-        id="delProductModal"
-        ref={deleteModalRef}
-        className="modal fade"
-        tabIndex="-1"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h1 className="modal-title fs-5">刪除產品</h1>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">
-              你是否要刪除
-              <span className="text-danger fw-bold">{tempProduct.title}</span>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                onClick={handleCloseDeleteModal}
-                className="btn btn-secondary"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteProduct}
-                className="btn btn-danger"
-              >
-                刪除
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      
+      
     </>
   )
 }
