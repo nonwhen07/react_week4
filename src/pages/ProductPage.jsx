@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Modal } from "bootstrap";
+import { useState, useEffect } from "react";
+// import { Modal } from "bootstrap";
 import axios from "axios";
 // import PropTypes from 'prop-types';
 import Pagination from '../components/Pagination';
@@ -11,7 +11,7 @@ function ProductPage() {
   const baseURL = import.meta.env.VITE_BASE_URL;
   const apiPath = import.meta.env.VITE_API_PATH;
   // Modal Ref 定義
-  const deleteModalRef = useRef(null);
+  // const deleteModalRef = useRef(null);
   // 狀態管理 (State)
   const [products, setProducts] = useState([]);
   const [pageInfo, setPageInfo] = useState({});
@@ -74,18 +74,10 @@ function ProductPage() {
     setIsDeleteModalOpen(true)
   };
   
-  
-
-  
-  
-
   //ProductPage 初始化呼叫 getProducts
   useEffect(() =>{
     getProducts()
   }, [])
-
-  
-  
 
   return (
     <>
